@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retención de dígitos · Estudio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+:root{--ink:#243247;--muted:#6d7b8e;--line:#e2e8f0;--bg:#f5f7fb;--accent:#647fa8;--soft:#eaf0f8;--g1:#4c6ef5;--g2:#12b886;--g3:#f59f00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui, sans-serif}
+header{background:white;border-bottom:1px solid var(--line);padding:18px 5vw}
+h1{font-size:21px;margin:0}
+h2{font-size:20px;margin:0 0 8px}
+h3{font-size:16px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:13px}
+main{max-width:1100px;margin:26px auto;padding:0 16px}
+.card{background:white;border:1px solid var(--line);border-radius:15px;padding:20px;margin-bottom:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+label{display:block;color:var(--muted);font-size:13px;margin-bottom:5px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;font:inherit}
+input[type="range"]{padding:4px 0;border:0;background:transparent}
+input[type="file"]{padding:8px;background:var(--bg)}
+button{border:0;border-radius:9px;background:var(--accent);color:white;padding:11px 15px;font:inherit;font-weight:650;cursor:pointer}
+button.secondary{background:var(--soft);color:var(--ink)}
+button.explainBtn{background:#eef4ff;color:#2b4c7e;border:1px solid #cbd9f0;white-space:nowrap}
+button:disabled{opacity:.4}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{background:var(--soft);color:var(--ink)}
+.tabs .active{background:var(--accent);color:white}
+.hidden{display:none!important}
+.pill{display:inline-block;padding:4px 10px;border-radius:30px;background:var(--soft);font-size:12px}
+.notice{padding:12px;background:#f0f4f9;border-radius:9px;color:#4c6078;font-size:13px}
+.sequence{font-size:40px;letter-spacing:12px;text-align:center;font-weight:750;padding:20px}
+.timer{text-align:center;font-size:28px;font-weight:750;color:var(--accent)}
+.answer{font-size:25px;text-align:center;letter-spacing:5px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted)}
+canvas{max-width:150px}
+.projSeq{font-size:76px;letter-spacing:18px;text-align:center;font-weight:800;min-height:130px;padding:20px 0}
+.projSeq.faded{color:#b8c3d3}
+.expected{text-align:center;color:var(--muted);font-size:15px;min-height:22px}
+#projector:fullscreen{display:flex;flex-direction:column;justify-content:center;border-radius:0}
+#projector:fullscreen .projSeq{font-size:130px}
+.explainCard{background:#f4f8ff;border:2px solid #bfd3f2;border-radius:14px;padding:22px;margin:14px 0;text-align:center}
+.explainCard h3{font-size:20px;margin:0 0 10px;color:#1e3a63}
+.explainText{font-size:17px;line-height:1.55;max-width:680px;margin:0 auto 14px}
+.explainExample{display:inline-block;background:white;border:1px solid #d5e2f5;border-radius:10px;padding:12px 18px;font-size:16px}
+#projector:fullscreen .explainCard{padding:36px}
+#projector:fullscreen .explainCard h3{font-size:30px}
+#projector:fullscreen .explainText{font-size:24px;max-width:900px}
+#projector:fullscreen .explainExample{font-size:24px;padding:18px 28px}
+.stageBtnRow{display:flex;gap:6px;align-items:stretch}
+.stageBtnRow button:first-child{flex:1;text-align:left}
+.statBox{background:#f9fbfe;border:1px solid var(--line);border-radius:12px;padding:14px}
+.statNum{font-size:24px;font-weight:800;line-height:1.2;margin:4px 0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.barGroup{margin-bottom:12px}
+.barRow{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px}
+.barLabel{width:70px;color:var(--muted)}
+.barTrack{flex:1;height:14px;background:#eef2f7;border-radius:7px;overflow:hidden}
+.barFill{height:100%;border-radius:7px;transition:width .25s ease}
+.barVal{width:54px;text-align:right;font-weight:600}
+@media(max-width:600px){.card{padding:16px}.sequence{font-size:32px;letter-spacing:7px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Retención de dígitos</h1>
+  <div class="sub">Experimento sincronizado · 3 grupos de 30 participantes</div>
+</header>
+<main>
+  <div class="tabs">
+    <button id="tabAdmin" class="active" onclick="showTab('admin')">Investigador/a</button>
+    <button id="tabPart" onclick="showTab('participant')">Participante</button>
+  </div>
+
+  <section id="admin">
+    <div class="card">
+      <h2>Panel del investigador</h2>
+      <p class="sub">Crea las tres salas de trabajo y activa el audio antes de empezar.</p>
+      <div class="row" style="margin-bottom:15px">
+        <button onclick="testAudio()" style="background:#2b8a3e">🔊 1. Activar / Probar Audio</button>
+        <span class="sub">Pulsa esto primero para desbloquear la voz y la música en el navegador.</span>
+      </div>
+      <div class="grid">
+        <div><label>URL pública de la web</label><input id="publicUrl" placeholder="https://tu-usuario.github.io/tu-repo"></div>
+        <div><label>Prefijo de códigos</label><input id="prefix" value="DIG" maxlength="8"></div>
+      </div>
+
+      <div class="card" style="background:#f9fbfe;margin-top:14px;margin-bottom:14px;padding:15px">
+        <h2 style="font-size:16px;margin-bottom:4px">Música de fondo (Grupos 2 y 3 · altavoz del investigador)</h2>
+        <p class="sub" style="margin-top:0">Por defecto intenta cargar <b>grupo2.mp3</b> y <b>grupo3.mp3</b>; si no existen o quieres cambiarlas ahora, selecciona un archivo desde tu ordenador.</p>
+        <div class="grid">
+          <div>
+            <label>Audio Grupo 2</label>
+            <input type="file" id="musicFile2" accept="audio/*" onchange="selectMusicFile(2,this)">
+            <div class="sub" id="musicLabel2" style="margin-top:4px">Buscando grupo2.mp3…</div>
+          </div>
+          <div>
+            <label>Audio Grupo 3</label>
+            <input type="file" id="musicFile3" accept="audio/*" onchange="selectMusicFile(3,this)">
+            <div class="sub" id="musicLabel3" style="margin-top:4px">Buscando grupo3.mp3…</div>
+          </div>
+          <div>
+            <label>Volumen de música: <span id="volValue">25%</span></label>
+            <input type="range" id="musicVol" min="0" max="100" value="25" oninput="updateMusicVolume(this.value)">
+            <div class="row" style="margin-top:6px">
+              <button type="button" class="secondary" onclick="togglePreviewMusic(2)" style="padding:7px 11px;font-size:12px">▶ Probar G2</button>
+              <button type="button" class="secondary" onclick="togglePreviewMusic(3)" style="padding:7px 11px;font-size:12px">▶ Probar G3</button>
+              <button type="button" class="secondary" onclick="stopBackgroundMusic()" style="padding:7px 11px;font-size:12px">⏹ Parar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button onclick="createGroups()">Crear las 3 salas</button>
+        <button class="secondary" onclick="refreshAll()">Actualizar resultados</button>
+        <span id="adminStatus" class="sub"></span>
+      </div>
+      <p class="sub" id="voiceStatus" style="margin-bottom:0"></p>
+    </div>
+
+    <!-- Pantalla de la investigadora: muestra explicaciones o dígitos y los lee por el altavoz -->
+    <div class="card hidden" id="projector">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <span class="pill" id="projGroup"></span>
+          <h2 id="projStage" style="margin-top:6px"></h2>
+        </div>
+        <div class="row">
+          <span class="sub" id="projTrial"></span>
+          <button class="secondary" onclick="toggleFullscreen()">Pantalla completa</button>
+          <button class="secondary" id="projStopBtn" onclick="stopProjector()">Detener</button>
+        </div>
+      </div>
+      <div class="explainCard hidden" id="projExplainBox">
+        <h3 id="projExplainTitle"></h3>
+        <p class="explainText" id="projExplainBody"></p>
+        <div class="explainExample" id="projExplainExample"></div>
+      </div>
+      <div id="projTrialBox">
+        <div class="projSeq" id="projSeq"></div>
+        <div class="expected" id="projExpected"></div>
+        <div class="timer" id="projClock"></div>
+        <p class="sub" id="projPhase" style="text-align:center"></p>
+      </div>
+    </div>
+
+    <div id="rooms" class="grid"></div>
+
+    <!-- Apartado de análisis de resultados para la investigación -->
+    <div id="analysisPanel" class="card hidden">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <div>
+          <h2>Análisis de resultados · Efecto de la música en la memoria</h2>
+          <div class="sub">Comparativa entre condición control (Grupo 1) y condiciones con música (Grupos 2 y 3)</div>
+        </div>
+        <div class="row">
+          <button class="secondary" onclick="exportSummaryCSV()">Exportar resumen por alumno (SPSS/Excel)</button>
+          <button class="secondary" onclick="exportCSV()">Exportar ensayo a ensayo</button>
+        </div>
+      </div>
+
+      <div class="grid" id="groupSummaryCards" style="margin-bottom:16px"></div>
+
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px">
+        <div class="statBox">
+          <h3>Rendimiento medio por subprueba (% acierto)</h3>
+          <div id="stageBars"></div>
+        </div>
+        <div class="statBox">
+          <h3>Curva de memoria por longitud de dígitos (2 a 9)</h3>
+          <div id="lengthChart"></div>
+        </div>
+      </div>
+
+      <div class="statBox" style="overflow:auto">
+        <h3>Tabla comparativa por longitud de secuencia (% de acierto)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Longitud</th>
+              <th><span class="dot" style="background:var(--g1)"></span>Grupo 1 (Control)</th>
+              <th><span class="dot" style="background:var(--g2)"></span>Grupo 2 (Música A)</th>
+              <th><span class="dot" style="background:var(--g3)"></span>Grupo 3 (Música B)</th>
+            </tr>
+          </thead>
+          <tbody id="lengthTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="allResults" class="card hidden">
+      <div class="row" style="justify-content:space-between">
+        <h2>Detalle individual de participantes</h2>
+        <span class="sub" id="totalParticipantsNote"></span>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>Grupo</th><th>ID</th><th>Estado</th><th>Respuestas</th><th>Aciertos</th><th>Directos</th><th>Inversos</th><th>Secuencia</th></tr></thead>
+          <tbody id="resultRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="participant" class="hidden">
+    <div class="card" id="joinPanel">
+      <h2>Acceso del participante</h2>
+      <p class="sub">Introduce el código de la sala y tu identificador.</p>
+      <div class="grid">
+        <div><label>Código de grupo</label><input id="pCode" placeholder="DIG-G1"></div>
+        <div><label>Identificador individual</label><input id="pId" placeholder="P01" maxlength="8"></div>
+      </div>
+      <br>
+      <button onclick="join()">Entrar y quedar a la espera</button>
+      <span id="joinStatus" class="sub"></span>
+    </div>
+
+    <div class="card hidden" id="taskPanel">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <span class="pill" id="groupPill">Grupo 1</span>
+          <h2 id="stageTitle">Esperando al investigador</h2>
+        </div>
+        <div class="sub" id="trialCount"></div>
+      </div>
+      <p class="sub" id="instruction">Permanece en esta pantalla. El investigador marcará el ritmo.</p>
+      <div class="explainCard hidden" id="partExplainBox">
+        <h3 id="partExplainTitle"></h3>
+        <p class="explainText" id="partExplainBody"></p>
+        <div class="explainExample" id="partExplainExample"></div>
+      </div>
+      <div class="notice" id="waitBox">Esperando a que el investigador inicie la fase.</div>
+      <div id="liveArea" class="hidden">
+        <div class="sequence hidden" id="sequence">🔊</div>
+        <div class="timer" id="clock"></div>
+        <div id="responseBox" class="hidden">
+          <label style="text-align:center">Introduce tu respuesta</label>
+          <input id="answer" class="answer" inputmode="numeric" autocomplete="off">
+          <div class="row" style="justify-content:center;margin-top:10px">
+            <button id="sendBtn" onclick="sendAnswer()">Enviar</button>
+          </div>
+        </div>
+        <p class="sub" id="phaseText" style="text-align:center"></p>
+      </div>
+      <div class="notice hidden" id="finished">Has terminado. Gracias por participar.</div>
+    </div>
+  </section>
+
+  <div class="notice">Prototipo experimental educativo, no es una administración oficial del WAIS-IV ni produce puntuaciones clínicas.</div>
+</main>
+
+<script>
+const SUPABASE_URL='https://mxmmzcbuxqqrwowjcfna.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_rpHD5mBTIO4_46I2GfKg-g_j1ib1AM9';
+const ADMIN_PASSWORD='PruebA26';
+
+const configured=true;
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// 1 secuencia por cada longitud (8 ensayos por subprueba · 24 ensayos en total)
+const stages=[
+{
+  name:'Dígitos directos',
+  instruction:'Escucha y repite los números en el mismo orden.',
+  explanation:'Escucharás una serie de números por el altavoz. Cuando termine la lectura, escribe los números exactamente en el MISMO ORDEN en el que los has oído (sin espacios).',
+  example:'Ejemplo: si escuchas <b>3 - 9 - 1</b>, debes escribir <b>391</b>.',
+  items:[['4 8'],['3 9 1'],['5 1 7 3'],['2 6 9 4 1'],['9 2 4 6 1 8'],['6 1 8 3 5 9 2'],['5 8 2 9 1 6 4 7'],['7 2 5 9 3 1 8 4 6']]
+},
+{
+  name:'Dígitos inversos',
+  instruction:'Escucha y repite los números en orden inverso.',
+  explanation:'Escucharás una serie de números por el altavoz. Cuando termine la lectura, escríbelos en ORDEN INVERSO, es decir, empezando por el último número que oíste hasta llegar al primero.',
+  example:'Ejemplo: si escuchas <b>3 - 8 - 1</b>, debes escribir <b>183</b>.',
+  items:[['6 2'],['3 8 1'],['7 1 4 9'],['4 9 2 6 1'],['1 6 3 8 5 2'],['5 2 8 1 7 4 9'],['8 3 6 1 9 4 2 7'],['4 1 8 6 2 9 5 3 7']]
+},
+{
+  name:'Dígitos en secuencia',
+  instruction:'Escucha y escribe los números de menor a mayor.',
+  explanation:'Escucharás una serie de números desordenados. Cuando termine la lectura, escríbelos ordenados de MENOR A MAYOR. Si algún número aparece repetido, escríbelo tantas veces como haya salido.',
+  example:'Ejemplo: si escuchas <b>5 - 9 - 2</b>, debes escribir <b>259</b>.',
+  items:[['8 2'],['5 9 2'],['8 4 1 6'],['6 2 9 4 1'],['9 1 6 3 8 2'],['5 8 1 7 3 9 2'],['7 3 9 1 5 8 2 6'],['6 2 9 4 1 8 3 7 5']]
+}
+];
+
+const trials=stages.flatMap((s,si)=>s.items.flatMap((pair,pi)=>pair.map((seq,ai)=>({stage:si,item:pi,attempt:ai,seq,len:seq.split(' ').length}))));
+const $=id=>document.getElementById(id);
+let rooms=[],session=null,participant=null,participantRow=null,offset=0,channel=null,timer=null,lastIdx=-1,submitted=new Set(),results={};
+
+// ---- Temporización (igual para investigadora y participantes) ----
+const TRIAL_MS=20000;    // duración total de cada ensayo
+const LISTEN_MS=10000;   // fase de escucha
+const DIGIT_MS=1000;     // un dígito por segundo
+const DIGIT_LEAD=600;    // pequeño margen antes del primer dígito
+const START_DELAY=4000;  // cuenta atrás antes del primer ensayo (da tiempo a que lleguen los móviles)
+
+// ---- Estado del proyector y música (solo pantalla de la investigadora) ----
+let proj=null,projTimer=null,spoken=new Set(),esVoice=null,pollTimer=null;
+let bgAudio=new Audio();
+bgAudio.loop=true;
+bgAudio.volume=0.25;
+let customMusic={2:null,3:null};
+let defaultMusicReady={2:false,3:false};
+let activeMusicGroup=null;
+
+function groupNumberFromSession(s){
+  if(!s)return null;
+  let m=String(s.group_label||'').match(/([123])/);
+  if(m)return +m[1];
+  let m2=String(s.join_code||'').match(/-G([123])$/i);
+  return m2?+m2[1]:null;
+}
+
+function getMusicSource(g){
+  if(customMusic[g])return customMusic[g];
+  if(defaultMusicReady[g])return `grupo${g}.mp3`;
+  return null;
+}
+
+function updateMusicVolume(val){
+  let v=Math.max(0,Math.min(100,+val||0));
+  $('volValue').textContent=v+'%';
+  bgAudio.volume=v/100;
+}
+
+function selectMusicFile(g,input){
+  let file=input.files&&input.files[0];
+  if(!file)return;
+  if(customMusic[g]&&customMusic[g].startsWith('blob:'))URL.revokeObjectURL(customMusic[g]);
+  customMusic[g]=URL.createObjectURL(file);
+  $('musicLabel'+g).textContent='Archivo seleccionado: '+file.name;
+  if(activeMusicGroup===g){
+    playGroupMusic(g);
+  }
+}
+
+function playGroupMusic(g){
+  if(g!==2&&g!==3){stopBackgroundMusic();return;}
+  let src=getMusicSource(g);
+  if(!src){
+    stopBackgroundMusic();
+    if($('adminStatus'))$('adminStatus').textContent=`Aviso: no hay música configurada para el Grupo ${g} (ni grupo${g}.mp3 ni archivo local).`;
+    return;
+  }
+  activeMusicGroup=g;
+  bgAudio.volume=(+$('musicVol').value||25)/100;
+  if(bgAudio.src!==new URL(src,location.href).href){
+    bgAudio.src=src;
+  }
+  bgAudio.play().catch(()=>{});
+}
+
+function togglePreviewMusic(g){
+  if(activeMusicGroup===g&&!bgAudio.paused){
+    stopBackgroundMusic();
+    return;
+  }
+  playGroupMusic(g);
+}
+
+function stopBackgroundMusic(){
+  activeMusicGroup=null;
+  bgAudio.pause();
+}
+
+async function probeDefaultMusic(g){
+  let file=`grupo${g}.mp3`;
+  try{
+    let res=await fetch(file,{cache:'no-store'});
+    if(res.ok){
+      defaultMusicReady[g]=true;
+      if(!customMusic[g])$('musicLabel'+g).textContent=`Por defecto: ${file} listo`;
+    }else{
+      defaultMusicReady[g]=false;
+      if(!customMusic[g])$('musicLabel'+g).textContent=`No se encontró ${file} (puedes elegir un archivo)`;
+    }
+  }catch(e){
+    defaultMusicReady[g]=false;
+    if(!customMusic[g])$('musicLabel'+g).textContent=`No se encontró ${file} (puedes elegir un archivo)`;
+  }
+}
+
+probeDefaultMusic(2);
+probeDefaultMusic(3);
+
+function showTab(t){
+  if(t==='admin'){
+    let pwd = prompt('Introduce la contraseña de investigador:');
+    if(pwd !== ADMIN_PASSWORD){
+      alert('Contraseña incorrecta.');
+      return;
+    }
+  }
+  $('admin').classList.toggle('hidden',t!=='admin');
+  $('participant').classList.toggle('hidden',t!=='participant');
+  $('tabAdmin').classList.toggle('active',t==='admin');
+  $('tabPart').classList.toggle('active',t==='participant');
+}
+
+function transform(seq,stage){let a=seq.split(' ');if(stage===1)a.reverse();if(stage===2)a.sort((x,y)=>+x-+y);return a.join('')}
+function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+async function serverClock(){
+  let a=Date.now();
+  let {data,error}=await db.rpc('get_server_time');
+  let b=Date.now();
+  if(error)throw error;
+  offset=new Date(data).getTime()-((a+b)/2);
+}
+
+async function createGroups(){
+  if(!db){$('adminStatus').textContent='Configura Supabase.';return}
+  let prefix=$('prefix').value.trim().toUpperCase()||'DIG';
+  rooms=[];
+  for(let i=1;i<=3;i++){
+    let code=`${prefix}-G${i}`;
+    let {data:old}=await db.from('sessions').select('*').eq('join_code',code).maybeSingle();
+    if(old){rooms.push(old);continue}
+    let {data,error}=await db.from('sessions').insert({join_code:code,group_label:`Grupo ${i}`,status:'waiting'}).select().single();
+    if(error){$('adminStatus').textContent=error.message;return}
+    rooms.push(data);
+  }
+  renderRooms();
+  await refreshAll();
+  $('adminStatus').textContent='Salas creadas.';
+}
+
+function statusBadgeLabel(st){
+  if(st==='waiting')return 'En espera';
+  if(st==='explain0')return 'Explicación: Directos';
+  if(st==='explain1')return 'Explicación: Inversos';
+  if(st==='explain2')return 'Explicación: Secuencia';
+  if(st==='stage0')return 'Fase 1: Directos';
+  if(st==='stage1')return 'Fase 2: Inversos';
+  if(st==='stage2')return 'Fase 3: Secuencia';
+  return 'Finalizado';
+}
+
+function renderRooms(){
+  let base=$('publicUrl').value.trim().replace(/\/$/,'');
+  $('rooms').innerHTML=rooms.map((r,i)=>{
+    let link=base?`${base}/?code=${encodeURIComponent(r.join_code)}`:'';
+    let stLbl=statusBadgeLabel(r.status);
+    return `<div class="card">
+      <div class="row" style="justify-content:space-between"><h2>Grupo ${i+1}</h2><span class="pill">${stLbl}</span></div>
+      <p><b>${esc(r.join_code)}</b></p>
+      <div class="sub">Participantes: <b id="count${i}">0/30</b></div>
+      <div class="sub" style="margin:8px 0;word-break:break-all">${esc(link||'Añade la URL pública')}</div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <div class="stageBtnRow">
+          <button onclick="advanceGroup('${r.id}','stage0')">▶ Iniciar Directos</button>
+          <button type="button" class="explainBtn" onclick="showExplanation('${r.id}',0)">📖 Explicación</button>
+        </div>
+        <div class="stageBtnRow">
+          <button onclick="advanceGroup('${r.id}','stage1')" class="secondary">▶ Iniciar Inversos</button>
+          <button type="button" class="explainBtn" onclick="showExplanation('${r.id}',1)">📖 Explicación</button>
+        </div>
+        <div class="stageBtnRow">
+          <button onclick="advanceGroup('${r.id}','stage2')" class="secondary">▶ Iniciar Secuencia</button>
+          <button type="button" class="explainBtn" onclick="showExplanation('${r.id}',2)">📖 Explicación</button>
+        </div>
+      </div>
+      <div style="margin-top:10px"><button class="secondary" onclick="copyText('${link}')" style="width:100%">Copiar enlace</button></div>
+      <div id="qr${i}"></div>
+    </div>`;
+  }).join('');
+  if(base&&window.QRCode)rooms.forEach((r,i)=>{let c=document.createElement('canvas');$('qr'+i).appendChild(c);QRCode.toCanvas(c,`${base}/?code=${r.join_code}`,{width:110,margin:1},()=>{})});
+}
+
+async function showExplanation(id, stageIndex){
+  if(!db)return;
+  let targetStatus=`explain${stageIndex}`;
+  let {data,error}=await db.from('sessions').update({status:targetStatus, started_at:null}).eq('id',id).select().single();
+  if(error){alert('Error al mostrar explicación: '+error.message);return}
+  rooms=rooms.map(r=>r.id===id?data:r);
+  renderRooms();
+  stopBackgroundMusic();
+  openProjectorExplanation(data, stageIndex);
+}
+
+function openProjectorExplanation(s, stageIndex){
+  if(projTimer)clearInterval(projTimer);
+  projTimer=null;
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  proj=s;
+  let stg=stages[stageIndex];
+  $('projector').classList.remove('hidden');
+  $('projGroup').textContent=s.group_label;
+  $('projStage').textContent=stg.name;
+  $('projTrial').textContent='Instrucciones previas';
+  $('projStopBtn').textContent='Cerrar explicación';
+  $('projExplainBox').classList.remove('hidden');
+  $('projTrialBox').classList.add('hidden');
+  $('projExplainTitle').textContent=`Instrucciones · ${stg.name}`;
+  $('projExplainBody').textContent=stg.explanation;
+  $('projExplainExample').innerHTML=stg.example;
+  $('projector').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function advanceGroup(id, targetStatus){
+  if(!db)return;
+  // Este clic "desbloquea" la voz y la música en el navegador de la investigadora
+  if('speechSynthesis' in window){pickVoice();speechSynthesis.resume();}
+  // El inicio se fija con la hora del SERVIDOR (no la del portátil) para que todos compartan el mismo reloj
+  try{await serverClock()}catch(e){$('adminStatus').textContent='Aviso: no se pudo leer la hora del servidor; se usa la del ordenador.'}
+  let startIso=new Date(Date.now()+offset+START_DELAY).toISOString();
+  let {data,error}=await db.from('sessions').update({status:targetStatus, started_at:startIso}).eq('id',id).select().single();
+  if(error){alert('Error al cambiar fase: '+error.message);return}
+  rooms=rooms.map(r=>r.id===id?data:r);
+  renderRooms();
+  let gNum=groupNumberFromSession(data);
+  if(gNum===2||gNum===3)playGroupMusic(gNum);
+  else stopBackgroundMusic();
+  startProjector(data);
+}
+
+// ===================== PROYECTOR DE LA INVESTIGADORA =====================
+// Muestra los dígitos uno a uno y los lee en voz alta por el altavoz conectado a este ordenador.
+
+function pickVoice(){
+  let v=speechSynthesis.getVoices();
+  esVoice=v.find(x=>x.lang==='es-ES')||v.find(x=>(x.lang||'').toLowerCase().startsWith('es'))||null;
+  if($('voiceStatus'))$('voiceStatus').textContent=esVoice?`Voz: ${esVoice.name} (${esVoice.lang})`:'No se ha encontrado una voz en español en este navegador; prueba con Chrome o Edge.';
+}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
+
+function sayDigit(d){
+  if(!('speechSynthesis' in window))return;
+  let u=new SpeechSynthesisUtterance(d);
+  u.lang='es-ES'; if(esVoice)u.voice=esVoice; u.rate=0.9;
+  speechSynthesis.resume();
+  speechSynthesis.speak(u);
+}
+
+function startProjector(s){
+  proj=s; spoken=new Set();
+  $('projector').classList.remove('hidden');
+  $('projGroup').textContent=s.group_label;
+  $('projStopBtn').textContent='Detener';
+  $('projExplainBox').classList.add('hidden');
+  $('projTrialBox').classList.remove('hidden');
+  if(projTimer)clearInterval(projTimer);
+  projTimer=setInterval(updateProjector,40);
+  updateProjector();
+  $('projector').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function stopProjector(){
+  let wasExplain=proj&&explainStageOf(proj.status)>=0;
+  let projId=proj?proj.id:null;
+  if(projTimer)clearInterval(projTimer);
+  projTimer=null;
+  stopBackgroundMusic();
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  if(document.fullscreenElement)document.exitFullscreen();
+  $('projector').classList.add('hidden');
+  $('projExplainBox').classList.add('hidden');
+  $('projTrialBox').classList.remove('hidden');
+  if(wasExplain&&projId&&db){
+    let {data}=await db.from('sessions').update({status:'waiting', started_at:null}).eq('id',projId).select().single();
+    if(data){
+      rooms=rooms.map(r=>r.id===projId?data:r);
+      renderRooms();
+    }
+  }
+  proj=null;
+}
+
+function toggleFullscreen(){
+  if(document.fullscreenElement)document.exitFullscreen();
+  else $('projector').requestFullscreen?.();
+}
+
+function updateProjector(){
+  let st=trialState(proj);
+  let si=stageOf(proj.status);
+  $('projStage').textContent=si>=0?stages[si].name:'';
+  $('projSeq').classList.remove('faded');
+
+  if(st.kind==='idle'){$('projSeq').textContent='';$('projClock').textContent='';$('projPhase').textContent='En espera';$('projExpected').textContent='';return}
+  if(st.kind==='countdown'){
+    $('projTrial').textContent='';
+    $('projSeq').textContent='';
+    $('projExpected').textContent='';
+    $('projClock').textContent=Math.ceil(st.ms/1000)+' s';
+    $('projPhase').textContent='La fase comienza en…';
+    return;
+  }
+  if(st.kind==='done'){
+    clearInterval(projTimer);projTimer=null;
+    stopBackgroundMusic();
+    $('projTrial').textContent='';
+    $('projSeq').textContent='✓';
+    $('projExpected').textContent='';
+    $('projClock').textContent='';
+    $('projPhase').textContent='Fase finalizada. Puedes iniciar la siguiente desde la tarjeta del grupo.';
+    refreshAll();
+    return;
+  }
+
+  let t=trials[st.idx], digits=t.seq.split(' ');
+  $('projTrial').textContent=`Ensayo ${st.localIdx+1} de ${st.total} · ítem ${t.item+1}, intento ${t.attempt+1}`;
+
+  if(st.within<LISTEN_MS){
+    // Índice del dígito que toca ahora (un dígito por segundo)
+    let k=Math.floor((st.within-DIGIT_LEAD)/DIGIT_MS);
+    let shown=Math.max(0,Math.min(digits.length,k+1));
+    $('projSeq').textContent=digits.slice(0,shown).join(' ')||'·';
+    if(k>=0&&k<digits.length){
+      let key=st.idx+':'+k;
+      let late=st.within-DIGIT_LEAD-k*DIGIT_MS;
+      // Solo se dice si estamos en su momento (evita una ráfaga si la pestaña estuvo en segundo plano)
+      if(!spoken.has(key)&&late<400){spoken.add(key);sayDigit(digits[k]);}
+    }
+    $('projExpected').textContent='';
+    $('projClock').textContent=Math.ceil((LISTEN_MS-st.within)/1000)+' s';
+    $('projPhase').textContent='Presentación de la secuencia';
+  }else{
+    $('projSeq').textContent=digits.join(' ');
+    $('projSeq').classList.add('faded');
+    $('projExpected').textContent='Respuesta correcta: '+transform(t.seq,t.stage);
+    $('projClock').textContent=Math.ceil((TRIAL_MS-st.within)/1000)+' s';
+    $('projPhase').textContent='Los participantes están respondiendo';
+  }
+}
+
+async function refreshAll(){
+  if(!db)return;
+  if(!rooms.length){let {data}=await db.from('sessions').select('*').order('group_label');rooms=data||[];renderRooms()}
+  let all=[];
+  for(let [i,r] of rooms.entries()){
+    let [{data:p},{data:a}]=await Promise.all([db.from('participants').select('*').eq('session_id',r.id),db.from('responses').select('*').eq('session_id',r.id)]);
+    $(`count${i}`)&&($(`count${i}`).textContent=(p||[]).length+'/30');
+    for(let person of (p||[])){
+      let ar=(a||[]).filter(x=>x.participant_id===person.id);
+      let by=[0,1,2].map(s=>ar.filter(x=>x.stage===s&&x.correct).length);
+      all.push({group:r.group_label,id:person.participant_code,completed:person.completed,progress:person.progress||0,answers:ar.length,correct:ar.filter(x=>x.correct).length,by});
+    }
+    results[r.id]={participants:p||[],answers:a||[]};
+  }
+  $('allResults').classList.remove('hidden');
+  $('totalParticipantsNote').textContent=`Total registrados: ${all.length} participantes`;
+  $('resultRows').innerHTML=all.map(x=>`<tr><td>${esc(x.group)}</td><td>${esc(x.id)}</td><td>${x.completed?'Finalizado':x.progress+'/'+trials.length}</td><td>${x.answers}</td><td>${x.correct}</td><td>${x.by[0]}</td><td>${x.by[1]}</td><td>${x.by[2]}</td></tr>`).join('');
+  renderAnalysis();
+}
+
+// ===================== ANÁLISIS DE RESULTADOS =====================
+function calcStats(arr){
+  if(!arr.length)return{mean:0,sd:0};
+  let mean=arr.reduce((s,v)=>s+v,0)/arr.length;
+  let variance=arr.length>1?arr.reduce((s,v)=>s+(v-mean)**2,0)/(arr.length-1):0;
+  return{mean,sd:Math.sqrt(variance)};
+}
+
+function renderAnalysis(){
+  if(!rooms.length){$('analysisPanel').classList.add('hidden');return;}
+  $('analysisPanel').classList.remove('hidden');
+
+  const colors=['var(--g1)','var(--g2)','var(--g3)'];
+  const condLabels=['Sin música (Control)','Música Grupo 2','Música Grupo 3'];
+  const stageLen=stages[0].items.length; // 8
+
+  let gStats=[0,1,2].map(idx=>{
+    let r=rooms[idx];
+    if(!r||!results[r.id])return{label:`Grupo ${idx+1}`,cond:condLabels[idx],color:colors[idx],n:0,activeN:0,pct:0,meanTotal:0,sdTotal:0,stageMeans:[0,0,0],stagePcts:[0,0,0],timeoutPct:0,byLen:{}};
+    let {participants:p,answers:a}=results[r.id];
+    let perStudent=p.map(person=>{
+      let ar=a.filter(x=>x.participant_id===person.id);
+      let st=[0,1,2].map(s=>ar.filter(x=>x.stage===s&&x.correct).length);
+      return{answered:ar.length,total:st[0]+st[1]+st[2],st};
+    }).filter(x=>x.answered>0);
+
+    let totals=perStudent.map(x=>x.total);
+    let {mean:meanTotal,sd:sdTotal}=calcStats(totals);
+    let totalCorrect=a.filter(x=>x.correct).length;
+    let pct=a.length?(totalCorrect/a.length)*100:0;
+    let timeouts=a.filter(x=>x.timeout).length;
+    let timeoutPct=a.length?(timeouts/a.length)*100:0;
+
+    let stageMeans=[0,1,2].map(s=>perStudent.length?perStudent.reduce((acc,x)=>acc+x.st[s],0)/perStudent.length:0);
+    let stagePcts=[0,1,2].map(s=>{
+      let sa=a.filter(x=>x.stage===s);
+      return sa.length?(sa.filter(x=>x.correct).length/sa.length)*100:0;
+    });
+
+    let byLen={};
+    for(let len=2;len<=9;len++){
+      let la=a.filter(x=>trials[x.trial_index]?.len===len);
+      byLen[len]=la.length?(la.filter(x=>x.correct).length/la.length)*100:null;
+    }
+
+    return{label:r.group_label||`Grupo ${idx+1}`,cond:condLabels[idx],color:colors[idx],n:p.length,activeN:perStudent.length,pct,meanTotal,sdTotal,stageMeans,stagePcts,timeoutPct,byLen};
+  });
+
+  // 1. Tarjetas resumen por grupo
+  $('groupSummaryCards').innerHTML=gStats.map(g=>`
+    <div class="statBox">
+      <div class="row" style="justify-content:space-between">
+        <b><span class="dot" style="background:${g.color}"></span>${esc(g.label)}</b>
+        <span class="pill">${esc(g.cond)}</span>
+      </div>
+      <div class="statNum">${g.pct.toFixed(1)}% <span class="sub" style="font-weight:400">acierto global</span></div>
+      <div class="sub">Media: <b>${g.meanTotal.toFixed(2)}</b> / ${trials.length} (DE = ${g.sdTotal.toFixed(2)})</div>
+      <div class="sub">Participantes con respuestas: <b>${g.activeN}</b> (registrados: ${g.n})</div>
+      <div class="sub" style="margin-top:6px">Directos: <b>${g.stageMeans[0].toFixed(1)}/${stageLen}</b> · Inversos: <b>${g.stageMeans[1].toFixed(1)}/${stageLen}</b> · Secuencia: <b>${g.stageMeans[2].toFixed(1)}/${stageLen}</b></div>
+      <div class="sub">Fuera de tiempo (timeout): <b>${g.timeoutPct.toFixed(1)}%</b></div>
+    </div>
+  `).join('');
+
+  // 2. Barras por subprueba
+  $('stageBars').innerHTML=stages.map((stg,si)=>`
+    <div class="barGroup">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">${esc(stg.name)}</div>
+      ${gStats.map(g=>`
+        <div class="barRow">
+          <div class="barLabel">${esc(g.label)}</div>
+          <div class="barTrack"><div class="barFill" style="width:${g.stagePcts[si].toFixed(1)}%;background:${g.color}"></div></div>
+          <div class="barVal">${g.stagePcts[si].toFixed(1)}%</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  // 3. Curva SVG por longitud de dígitos (2 a 9)
+  const W=420,H=200,padL=34,padR=14,padT=14,padB=26;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const xPos=len=>padL+((len-2)/7)*plotW;
+  const yPos=pct=>padT+plotH-(pct/100)*plotH;
+
+  let gridLines=[0,25,50,75,100].map(v=>`
+    <line x1="${padL}" y1="${yPos(v)}" x2="${W-padR}" y2="${yPos(v)}" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="${padL-6}" y="${yPos(v)+4}" text-anchor="end" font-size="10" fill="#6d7b8e">${v}%</text>
+  `).join('');
+
+  let xLabels=[2,3,4,5,6,7,8,9].map(len=>`
+    <text x="${xPos(len)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#6d7b8e">${len}</text>
+  `).join('');
+
+  let polylines=gStats.map(g=>{
+    let pts=[];
+    for(let len=2;len<=9;len++){
+      if(g.byLen[len]!==null)pts.push({x:xPos(len),y:yPos(g.byLen[len])});
+    }
+    if(!pts.length)return'';
+    let path=pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+    let dots=pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${g.color}"/>`).join('');
+    return `<path d="${path}" fill="none" stroke="${g.color}" stroke-width="2.5"/>${dots}`;
+  }).join('');
+
+  $('lengthChart').innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+      ${gridLines}${xLabels}${polylines}
+    </svg>
+    <div class="row" style="justify-content:center;gap:14px;margin-top:4px;font-size:12px">
+      ${gStats.map(g=>`<span><span class="dot" style="background:${g.color}"></span>${esc(g.label)}</span>`).join('')}
+    </div>
+  `;
+
+  // 4. Tabla por longitud de secuencia
+  $('lengthTableBody').innerHTML=[2,3,4,5,6,7,8,9].map(len=>`
+    <tr>
+      <td><b>${len} dígitos</b></td>
+      ${gStats.map(g=>`<td>${g.byLen[len]===null?'—':g.byLen[len].toFixed(1)+'%'}</td>`).join('')}
+    </tr>
+  `).join('');
+}
+
+function exportSummaryCSV(){
+  const condLabels=['Sin musica (Control)','Musica Grupo 2','Musica Grupo 3'];
+  let rows=[['grupo','condicion','participante','completado','ensayos_respondidos','aciertos_total','porcentaje_acierto','aciertos_directos','aciertos_inversos','aciertos_secuencia','span_maximo_directos','span_maximo_inversos','span_maximo_secuencia','timeouts']];
+  for(let [idx,r] of rooms.entries()){
+    let x=results[r.id]||{};
+    let cond=condLabels[idx]||'';
+    for(let p of (x.participants||[])){
+      let ar=(x.answers||[]).filter(a=>a.participant_id===p.id);
+      let by=[0,1,2].map(s=>ar.filter(a=>a.stage===s&&a.correct).length);
+      let maxSpans=[0,1,2].map(s=>{
+        let correctLens=ar.filter(a=>a.stage===s&&a.correct).map(a=>trials[a.trial_index]?.len||0);
+        return correctLens.length?Math.max(...correctLens):0;
+      });
+      let totalCorrect=by[0]+by[1]+by[2];
+      let pct=ar.length?((totalCorrect/ar.length)*100).toFixed(1):'0.0';
+      let timeouts=ar.filter(a=>a.timeout).length;
+      rows.push([r.group_label,cond,p.participant_code,p.completed?1:0,ar.length,totalCorrect,pct,by[0],by[1],by[2],maxSpans[0],maxSpans[1],maxSpans[2],timeouts]);
+    }
+  }
+  let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\n');
+  let blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='resumen_investigacion_musica.csv';a.click();URL.revokeObjectURL(url);
+}
+
+function copyText(t){if(t)navigator.clipboard?.writeText(t)}
+
+async function join(){
+  if(!db){$('joinStatus').textContent='Configura Supabase.';return}
+  let code=$('pCode').value.trim().toUpperCase(), id=$('pId').value.trim().toUpperCase();
+  if(!/^P(0[1-9]|[12][0-9]|30)$/.test(id)){$('joinStatus').textContent='Usa P01 a P30.';return}
+  let {data:s,error}=await db.from('sessions').select('*').eq('join_code',code).maybeSingle();
+  if(error||!s){$('joinStatus').textContent='Sala no encontrada.';return}
+  if(s.status==='closed'){$('joinStatus').textContent='Sala cerrada.';return}
+  let {data:p}=await db.from('participants').select('*').eq('session_id',s.id).eq('participant_code',id).maybeSingle();
+  if(!p){
+    let {data:newP,error:pe}=await db.from('participants').insert({session_id:s.id,participant_code:id,progress:0,completed:false}).select().single();
+    if(pe){$('joinStatus').textContent=pe.message;return}
+    p=newP;
+  }
+  session=s; participant=id; participantRow=p;
+  try{await serverClock()}catch(e){}
+  $('joinPanel').classList.add('hidden');
+  $('taskPanel').classList.remove('hidden');
+  $('groupPill').textContent=s.group_label;
+  evalSessionState();
+  listen();
+  // Respaldo por si se corta el tiempo real (wifi del aula): se consulta la sala cada 4 s
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    let {data}=await db.from('sessions').select('*').eq('id',session.id).maybeSingle();
+    if(data&&(data.status!==session.status||data.started_at!==session.started_at)){session=data;evalSessionState();}
+  },4000);
+}
+
+function listen(){
+  if(channel)db.removeChannel(channel);
+  channel=db.channel('sync-'+session.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'sessions',filter:'id=eq.'+session.id},async payload=>{
+    session=payload.new;
+    try{await serverClock()}catch(e){}
+    evalSessionState();
+  }).subscribe();
+}
+
+function stageOf(status){return status==='stage0'?0:status==='stage1'?1:status==='stage2'?2:-1}
+function explainStageOf(status){return status==='explain0'?0:status==='explain1'?1:status==='explain2'?2:-1}
+
+function getStageIndices(status){
+  let s=stageOf(status), n=stages[0].items.length; // 8 ensayos por fase
+  if(s<0) return {start:0,end:-1};
+  return {start:s*n,end:s*n+n-1};
+}
+
+// Dónde estamos ahora mismo en la fase, calculado con el reloj del servidor
+function trialState(s){
+  let range=getStageIndices(s.status);
+  if(range.end===-1||!s.started_at) return {kind:'idle'};
+  let elapsed=Date.now()+offset-new Date(s.started_at).getTime();
+  if(elapsed<0) return {kind:'countdown',ms:-elapsed,range};
+  let localIdx=Math.floor(elapsed/TRIAL_MS), idx=range.start+localIdx;
+  if(idx>range.end) return {kind:'done',range};
+  return {kind:'trial',idx,localIdx,within:elapsed%TRIAL_MS,range,total:range.end-range.start+1};
+}
+
+// ===================== VISTA DEL PARTICIPANTE =====================
+// No reproduce audio ni muestra los dígitos: solo cuenta atrás y casilla de respuesta.
+
+function showWait(msg){
+  $('waitBox').classList.remove('hidden');
+  $('waitBox').textContent=msg;
+  $('liveArea').classList.add('hidden');
+}
+
+function evalSessionState(){
+  if(timer)clearInterval(timer);
+  let expIdx=explainStageOf(session.status);
+  if(expIdx>=0){
+    let stg=stages[expIdx];
+    $('stageTitle').textContent=stg.name;
+    $('instruction').textContent='Lee con atención las instrucciones antes de empezar.';
+    $('trialCount').textContent='Explicación';
+    $('partExplainTitle').textContent=`Instrucciones · ${stg.name}`;
+    $('partExplainBody').textContent=stg.explanation;
+    $('partExplainExample').innerHTML=stg.example;
+    $('partExplainBox').classList.remove('hidden');
+    showWait('Cuando el investigador termine la explicación, comenzará la prueba.');
+    return;
+  }
+  $('partExplainBox').classList.add('hidden');
+  if(stageOf(session.status)<0){
+    $('stageTitle').textContent='Esperando al investigador';
+    $('instruction').textContent='Permanece en esta pantalla. El investigador marcará el ritmo.';
+    $('trialCount').textContent='';
+    showWait('Esperando a que el investigador inicie la siguiente fase...');
+    return;
+  }
+  timer=setInterval(updateTimeline,40);
+  updateTimeline();
+}
+
+// Si el móvil se bloqueó y se saltó el final de un ensayo, se guarda igualmente como "sin respuesta a tiempo"
+function flushPending(range){
+  if(lastIdx>=range.start&&lastIdx<=range.end&&!submitted.has(lastIdx))saveResponse(lastIdx,true);
+}
+
+function updateTimeline(){
+  let st=trialState(session);
+  if(st.kind==='idle'){showWait('Esperando a que el investigador inicie la siguiente fase...');return}
+  let stg=stages[stageOf(session.status)];
+  $('stageTitle').textContent=stg.name;
+  $('instruction').textContent=stg.instruction;
+
+  if(st.kind==='countdown'){
+    $('trialCount').textContent='';
+    showWait(`Atención: la fase empieza en ${Math.ceil(st.ms/1000)} s. Escucha el altavoz.`);
+    return;
+  }
+  if(st.kind==='done'){
+    clearInterval(timer);
+    flushPending(st.range);
+    lastIdx=-1;
+    $('trialCount').textContent='';
+    showWait('Fase finalizada. Espera las instrucciones del investigador para la siguiente prueba.');
+    return;
+  }
+
+  $('waitBox').classList.add('hidden');
+  $('liveArea').classList.remove('hidden');
+  $('trialCount').textContent=`Ensayo ${st.localIdx+1} de ${st.total}`;
+
+  if(st.idx!==lastIdx){
+    flushPending(st.range);
+    lastIdx=st.idx;
+    $('answer').value='';
+    $('sendBtn').disabled=false;
+  }
+
+  if(st.within<LISTEN_MS){
+    $('sequence').classList.remove('hidden');
+    $('sequence').textContent='🔊';
+    $('clock').textContent=Math.ceil((LISTEN_MS-st.within)/1000)+' s';
+    $('responseBox').classList.add('hidden');
+    $('phaseText').textContent='Escucha la secuencia por el altavoz';
+  }else{
+    $('sequence').classList.add('hidden');
+    $('clock').textContent=Math.ceil((TRIAL_MS-st.within)/1000)+' s';
+    let done=submitted.has(st.idx);
+    $('phaseText').textContent=done?'Respuesta registrada.':'Responde antes de que termine el tiempo.';
+    $('responseBox').classList.toggle('hidden',done);
+    if(st.within>=TRIAL_MS-100&&!done)saveResponse(st.idx,true);
+  }
+}
+
+function testAudio(){
+  if(!('speechSynthesis' in window)){
+    alert('Tu navegador no soporta síntesis de voz.');
+    return;
+  }
+  pickVoice();
+  speechSynthesis.cancel();
+  let u=new SpeechSynthesisUtterance('Audio activado. Uno, dos, tres.');
+  u.lang='es-ES'; if(esVoice)u.voice=esVoice;
+  speechSynthesis.speak(u);
+  $('adminStatus').textContent='Si has oído la voz por el altavoz, el audio está listo.';
+}
+
+async function sendAnswer(){
+  let st=trialState(session);
+  if(st.kind!=='trial'||st.within<LISTEN_MS||submitted.has(st.idx))return;
+  await saveResponse(st.idx,false);
+}
+
+async function saveResponse(idx,timeout){
+  if(submitted.has(idx))return;
+  submitted.add(idx);
+  $('responseBox').classList.add('hidden');
+  $('sendBtn').disabled=true;
+  let t=trials[idx],raw=$('answer').value.replace(/\D/g,'').slice(0,20),expected=transform(t.seq,t.stage);
+  let {error}=await db.from('responses').upsert({session_id:session.id,participant_id:participantRow.id,trial_index:idx,stage:t.stage,item_index:t.item,attempt:t.attempt,response:raw,expected,correct:raw===expected,timeout},{onConflict:'participant_id,trial_index'});
+  if(error){submitted.delete(idx);$('phaseText').textContent='Error al guardar.';return}
+  let progress=Math.max(participantRow.progress||0,idx+1);
+  participantRow.progress=progress;
+  await db.from('participants').update({progress}).eq('id',participantRow.id);
+  $('phaseText').textContent='Respuesta registrada.';
+}
+
+async function exportCSV(){
+  let rows=[['grupo','participante','ensayo','etapa','respuesta','respuesta_esperada','correcta','timeout']];
+  for(let r of rooms){
+    let x=results[r.id]||{};
+    for(let a of (x.answers||[])){
+      let p=(x.participants||[]).find(q=>q.id===a.participant_id);
+      rows.push([r.group_label,p?.participant_code||'',a.trial_index+1,stages[a.stage].name,a.response,a.expected,a.correct?1:0,a.timeout?1:0]);
+    }
+  }
+  let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\n');
+  let blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='resultados_ensayos.csv';a.click();URL.revokeObjectURL(url);
+}
+
+$('answer').addEventListener('keydown',e=>{if(e.key==='Enter')sendAnswer()});
+
+let params=new URLSearchParams(location.search);
+if(params.get('code')){$('pCode').value=params.get('code');showTab('participant')}
+</script>
+</body>
+</html>
